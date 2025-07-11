@@ -45,18 +45,14 @@ Before installing, ensure you have the required system dependencies:
 
 ```bash
 # Ubuntu/Debian - Install system dependencies
+sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
-sudo apt install -y libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev python3.8-dev
-
-# macOS - Install system dependencies
-brew install libffi openssl bzip2 readline sqlite3
 
 # Install Python 3.8 if needed
 # Ubuntu/Debian
-sudo apt install python3.8 python3.8-pip python3.8-venv
+sudo apt install python3.8
+sudo apt install python3.8-dev python3.8-venv python3.8-distutils
 
-# macOS (using Homebrew)
-brew install python@3.8
 
 # Windows
 # Download from https://www.python.org/downloads/release/python-3815/
@@ -66,20 +62,22 @@ brew install python@3.8
 
 ```bash
 # 1. Check Python version
-python --version  # Must show Python 3.8.x
+python3.8 --version  # Must show Python 3.8.x
 
 # 2. Create virtual environment
-python -m venv venv_viselfcheck
+python3.8 -m venv venv_viselfcheck
 
 # 3. Activate virtual environment
 source venv_viselfcheck/bin/activate  # Linux/macOS
 # venv_viselfcheck\Scripts\activate   # Windows
 
 # 4. Install package
+cd /path/to/viselfcheck  # Navigate to the package directory where pyproject.toml is located
 pip install -e .
 
 
 # 5. Run all tests with pytest
+cd tests  # Navigate to the tests directory
 python -m pytest
 ```
 
