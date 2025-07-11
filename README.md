@@ -78,8 +78,9 @@ source venv_viselfcheck/bin/activate  # Linux/macOS
 # 4. Install package
 pip install -e .
 
-# 5. Test installation (optional)
-python test_installation.py
+
+# 5. Run all tests with pytest
+python -m pytest
 ```
 
 ### API Configuration (for Prompt & Hybrid methods)
