@@ -107,9 +107,6 @@ class SelfCheckAPIPrompt(SelfCheckBase):
                         max_tokens=5, # max_tokens is the generated one,
                     )
 
-                    print('Length of prompt: ', len(prompt))
-                    print('Prompt: ', prompt)
-                    print('Answer: ', chat_completion.choices[0].message.content)
                     break
 
                 except Exception as e:

@@ -108,11 +108,6 @@ GEMINI_API_KEY=your-actual-gemini-key-here
 GEMINI_MODEL=gemini-pro
 ```
 
-```bash
-# 3. Test API configuration
-python test_api.py
-```
-
 That's it! Everything will be installed automatically.
 
 ---
