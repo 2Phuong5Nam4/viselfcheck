@@ -2,7 +2,7 @@ from ..base import SelfCheckBase
 from ..utils.utils import expand_list1, expand_list2
 from ..config.settings import BertScoreConfig
 
-from typing import List
+from typing import List, Optional
 import numpy as np
 import torch
 import bert_score
@@ -35,6 +35,7 @@ class SelfCheckBERTScore(SelfCheckBase):
         self,
         sentences: List[str],
         sampled_passages: List[str],
+        passage: Optional[str] = None,
         **kwargs
     )-> List[float]:
         """
@@ -43,6 +44,8 @@ class SelfCheckBERTScore(SelfCheckBase):
         Args:
             sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
             sampled_passages: List of stochastically generated responses (without sentence splitting)
+            passage: Optional passage text. If provided, this will be used instead of joining sentences.
+                    If None, will use " ".join(sentences) to create the passage.
             **kwargs: Additional parameters for future extensibility
             
         Returns:

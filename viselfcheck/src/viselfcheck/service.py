@@ -160,13 +160,15 @@ class ViSelfCheck:
     # Public Methods
     # ================================
 
-    def predict(self, sentences: List[str], sampled_passages: List[str], **kwargs) -> List[float]:
+    def predict(self, sentences: List[str], sampled_passages: List[str], passage: Optional[str] = None, **kwargs) -> List[float]:
         """
         Predict self-consistency scores for given sentences.
 
         Args:
             sentences (List[str]): List of sentences to be evaluated
             sampled_passages (List[str]): List of sampled passages as evidence
+            passage (Optional[str]): Optional passage text. If provided, this will be used instead of joining sentences.
+                                   If None, will use " ".join(sentences) to create the passage.
             **kwargs: Additional method-specific parameters
 
         Returns:
@@ -187,7 +189,7 @@ class ViSelfCheck:
             raise ValueError("sampled_passages cannot be empty")
 
         try:
-            return self.checker.predict(sentences, sampled_passages, **kwargs)
+            return self.checker.predict(sentences, sampled_passages, passage=passage, **kwargs)
         except Exception as e:
             raise RuntimeError(
                 f"Prediction failed with {self.method_name} method: {str(e)}"

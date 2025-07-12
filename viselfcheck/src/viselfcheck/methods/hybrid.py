@@ -55,6 +55,7 @@ class SelfCheckHybrid(SelfCheckBase):
         self,
         sentences: List[str],
         sampled_passages: List[str],
+        passage: Optional[str] = None,
         **kwargs
     ):
         """
@@ -63,6 +64,8 @@ class SelfCheckHybrid(SelfCheckBase):
         Args:
             sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
             sampled_passages: List of stochastically generated responses (without sentence splitting)
+            passage: Optional passage text. If provided, this will be used instead of joining sentences.
+                    If None, will use " ".join(sentences) to create the passage.
             **kwargs: Additional parameters for future extensibility
             
         Returns:

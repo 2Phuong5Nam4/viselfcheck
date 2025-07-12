@@ -54,8 +54,10 @@ def evaluate_method(method_name: str, dataset, device, **method_kwargs):
     num_datapoints = len(dataset)
     with tqdm(total=num_datapoints, desc=f'SelfCheck-{method_name}') as pbar:
         for i, datapoint in enumerate(dataset):
-            # For some methods, we need to pass the passage parameter
+            # For most methods, we can optionally provide the passage parameter
             predict_kwargs = {}
+            
+            # Some methods benefit from having the full passage text
             if method_name in ['mqag', 'ngram']:
                 predict_kwargs['passage'] = datapoint['gemini_text']
             
@@ -148,6 +150,8 @@ def test_ngram_only(dataset, ngram_range=(1, 2)):
                 selfcheck_scores_ = checker.predict(
                     sentences=datapoint['gemini_sentences'],
                     sampled_passages=datapoint['gemini_text_samples'],
+                    passage=datapoint['gemini_text'],  # Provide passage for ngram methods
+                    smoothing_pseudo_count=0
                 )
                 
                 # Check for None values and handle them

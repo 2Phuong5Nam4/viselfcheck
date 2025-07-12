@@ -21,6 +21,7 @@ class SelfCheckNgram(SelfCheckBase):
         self,
         sentences: List[str],
         sampled_passages: List[str],
+        passage: Optional[str] = None,
         smoothing_pseudo_count: Optional[int] = None,
         **kwargs
     ):
@@ -30,6 +31,8 @@ class SelfCheckNgram(SelfCheckBase):
         Args:
             sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
             sampled_passages: List of stochastically generated responses (without sentence splitting)
+            passage: Optional passage text. If provided, this will be used instead of joining sentences.
+                    If None, will use " ".join(sentences) to create the passage.
             smoothing_pseudo_count: Pseudo count for smoothing (default: 0)
             **kwargs: Additional parameters for future extensibility
             
@@ -46,8 +49,13 @@ class SelfCheckNgram(SelfCheckBase):
         else:
             raise ValueError("n must be integer >= 1")
 
-        passage = " ".join(sentences)
-        ngram_model.add(passage)
+        # Use provided passage or join sentences to form a passage
+        if passage is not None:
+            main_passage = passage
+        else:
+            main_passage = " ".join(sentences)
+        
+        ngram_model.add(main_passage)
 
         for sampled_passge in sampled_passages:
             ngram_model.add(sampled_passge)

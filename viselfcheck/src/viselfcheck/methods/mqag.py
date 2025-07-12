@@ -75,6 +75,7 @@ class SelfCheckMQAG(SelfCheckBase):
         self,
         sentences: List[str],
         sampled_passages: List[str],
+        passage: Optional[str] = None,
         **kwargs
     ):
         """
@@ -83,6 +84,8 @@ class SelfCheckMQAG(SelfCheckBase):
         Args:
             sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
             sampled_passages: List of stochastically generated responses (without sentence splitting)
+            passage: Optional passage text. If provided, this will be used instead of joining sentences.
+                    If None, will use " ".join(sentences) to create the passage.
             **kwargs: Additional parameters for future extensibility
             
         Returns:
@@ -104,8 +107,13 @@ class SelfCheckMQAG(SelfCheckBase):
         # - num_questions_per_sent * num_samples answer checks for sampled passages
         
         # Configure progress bar based on environment
-        passage = " ".join(sentences)  # Join sentences to form a passage
-        extended_passages = [passage]*num_questions_per_sent
+        # Use provided passage or join sentences to form a passage
+        if passage is not None:
+            main_passage = passage
+        else:
+            main_passage = " ".join(sentences)
+        
+        extended_passages = [main_passage]*num_questions_per_sent
         extended_sampled_passages = sampled_passages*num_questions_per_sent
 
         scores = []
