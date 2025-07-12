@@ -58,16 +58,6 @@ class SelfCheckNgram(SelfCheckBase):
         # Extract sentence-level avg_neg_logprob scores and normalize them
         scores = ngram_pred['sent_level']['avg_neg_logprob']
         
-        # Convert negative log probabilities to similarity scores (0-1 range)
-        # Lower negative log probability = higher similarity
-        # We'll use a simple transformation: 1 / (1 + score) for scores > 0
-        normalized_scores = []
-        for score in scores:
-            if score <= 0:
-                normalized_scores.append(1.0)  # Perfect match
-            else:
-                # Transform to 0-1 range where lower neg_logprob = higher similarity
-                normalized_score = 1.0 / (1.0 + score)
-                normalized_scores.append(min(1.0, max(0.0, normalized_score)))
+
         
-        return normalized_scores
+        return scores
