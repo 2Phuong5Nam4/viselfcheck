@@ -99,7 +99,7 @@ class ViSelfCheck:
         try:
             if self.method_name == 'bert_score':
                 return self.method_class(
-                    lang=kwargs.get('lang', 'vi'),
+                    lang=kwargs.get('lang', None),
                     rescale_with_baseline=kwargs.get('rescale_with_baseline', False),
                     device=self._handle_device(kwargs.get('device', None))
                 )
