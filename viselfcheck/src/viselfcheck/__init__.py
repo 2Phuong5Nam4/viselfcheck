@@ -16,6 +16,15 @@ from .service import (
     create_hybrid_checker
 )
 
+from .methods import (
+    SelfCheckBERTScore,
+    SelfCheckMQAG,
+    SelfCheckNgram,
+    SelfCheckNLI,
+    SelfCheckAPIPrompt,
+    SelfCheckHybrid
+)
+
 from .base import SelfCheckBase
 
 __version__ = "1.0.0"
@@ -29,5 +38,11 @@ __all__ = [
     'create_mqag_checker',
     'create_ngram_checker',
     'create_prompt_checker',
-    'create_hybrid_checker'
+    'create_hybrid_checker',
+    'SelfCheckBERTScore',
+    'SelfCheckMQAG',
+    'SelfCheckNgram',
+    'SelfCheckNLI',
+    'SelfCheckAPIPrompt',
+    'SelfCheckHybrid'
 ]

@@ -122,16 +122,21 @@ class SelfCheckAPIPrompt(SelfCheckBase):
         self,
         sentences: List[str],
         sampled_passages: List[str],
+        verbose: bool = False,
         **kwargs
     ):
         """
         This function takes sentences (to be evaluated) with sampled passages (evidence), and return sent-level scores
-        :param sentences: list[str] -- sentences to be evaluated, e.g. GPT text response spilt by spacy
-        :param sampled_passages: list[str] -- stochastically generated responses (without sentence splitting)
-        :param verson: bool -- if True tqdm progress bar will be shown
-        :return sent_scores: sentence-level scores
+        
+        Args:
+            sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
+            sampled_passages: List of stochastically generated responses (without sentence splitting)
+            verbose: If True, tqdm progress bar will be shown (default: False)
+            **kwargs: Additional parameters for future extensibility
+            
+        Returns:
+            List of sentence-level scores (0-1 range, higher means more inconsistent)
         """
-        verbose = kwargs.get('verbose', False)
         num_sentences = len(sentences)
         num_samples = len(sampled_passages)
         scores = np.zeros((num_sentences, num_samples))

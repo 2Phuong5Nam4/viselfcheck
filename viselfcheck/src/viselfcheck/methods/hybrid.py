@@ -1,7 +1,7 @@
 import os
 import time
 import numpy as np
-from typing import List
+from typing import List, Optional
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from openai import OpenAI
@@ -13,14 +13,18 @@ from ..base import SelfCheckBase
 class SelfCheckHybrid(SelfCheckBase):
     def __init__(
         self,
-        nli_model: str = None,
+        nli_model: Optional[str] = None,
         device = None,
         do_word_segmentation = None,
-        llm_model = None,
+        llm_model: Optional[str] = None,
         api_key = None
     ):
         # NLI intit
-        self.nli_model = nli_model if nli_model is not None else NLIConfig.nli_model
+        if nli_model is None:
+            nli_model = NLIConfig.nli_model
+        self.nli_model = nli_model
+        
+
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
         self.do_word_segmentation = do_word_segmentation if do_word_segmentation is not None else NLIConfig.do_word_segmentation
 
@@ -36,6 +40,9 @@ class SelfCheckHybrid(SelfCheckBase):
             base_url='https://generativelanguage.googleapis.com/v1beta/openai',
             api_key=api_key
         )
+
+        if llm_model is None:
+            llm_model = 'gpt-3.5-turbo'
         self.llm_model = llm_model
         self.prompt_template = "Ngữ cảnh: {context}\n\nCâu: {sentence}\n\nXác định xem câu trên có nhất quán với ngữ cảnh đã cho hay không. Trả lời 'Có' nếu câu phù hợp với ngữ cảnh và không mâu thuẫn với thông tin đã cung cấp. Trả lời 'Không' nếu câu mâu thuẫn hoặc không được hỗ trợ bởi ngữ cảnh.\n\nTrả lời: "
         self.text_mapping = {'có': 0.0, 'không': 1.0, 'n/a': 0.5}
@@ -50,6 +57,18 @@ class SelfCheckHybrid(SelfCheckBase):
         sampled_passages: List[str],
         **kwargs
     ):
+        """
+        This function takes sentences (to be evaluated) with sampled passages (evidence), and return sent-level scores
+        
+        Args:
+            sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
+            sampled_passages: List of stochastically generated responses (without sentence splitting)
+            **kwargs: Additional parameters for future extensibility
+            
+        Returns:
+            List of sentence-level scores (0-1 range, higher means more inconsistent)
+            Note: Combines NLI and LLM prompting - uses LLM when NLI is uncertain
+        """
         if self.do_word_segmentation:
             sentences_ = seg_list_fn(sentences, self.rdrsegmenter)
             sampled_passages_ = seg_list_fn(sampled_passages, self.rdrsegmenter)

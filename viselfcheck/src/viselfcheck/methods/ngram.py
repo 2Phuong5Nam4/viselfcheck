@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from ..modeling.modeling_ngram import UnigramModel, NgramModel
 from ..base import SelfCheckBase
@@ -21,10 +21,23 @@ class SelfCheckNgram(SelfCheckBase):
         self,
         sentences: List[str],
         sampled_passages: List[str],
+        smoothing_pseudo_count: Optional[int] = None,
         **kwargs
     ):
+        """
+        This function takes sentences (to be evaluated) with sampled passages (evidence), and return sent-level scores
         
-        smoothing_pseudo_count: int = kwargs.get('smoothing_pseudo_count', 0)
+        Args:
+            sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
+            sampled_passages: List of stochastically generated responses (without sentence splitting)
+            smoothing_pseudo_count: Pseudo count for smoothing (default: 0)
+            **kwargs: Additional parameters for future extensibility
+            
+        Returns:
+            List of sentence-level scores (0-1 range, higher means more inconsistent)
+        """
+        if smoothing_pseudo_count is None:
+            smoothing_pseudo_count = 0
 
         if self.n == 1:
             ngram_model = UnigramModel(lowercase=self.lowercase)

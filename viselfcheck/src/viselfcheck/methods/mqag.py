@@ -29,6 +29,11 @@ class SelfCheckMQAG(SelfCheckBase):
         QuestionCurator_checkpoint: Optional[str] = None,
         device: Optional[torch.device] = None,
         seed: int = 42,
+        num_questions_per_sent: Optional[int] = None,
+        scoring_method: Optional[str] = None,
+        AT: Optional[float] = None,
+        beta1: Optional[float] = None,
+        beta2: Optional[float] = None,
     ):
         if device is not None:
             self.device = device
@@ -56,6 +61,13 @@ class SelfCheckMQAG(SelfCheckBase):
         self.distractor_generator = DistractorGenerator(DistractorGenerator_checkpoint, device=self.device)
         self.answerer = QuestionAnswerer(QuestionAnswerer_checkpoint, device=self.device)
         self.curator = QuestionCurator(QuestionCurator_checkpoint, device=self.device)
+        
+        # Set default parameters
+        self.num_questions_per_sent = num_questions_per_sent if num_questions_per_sent is not None else MQAGConfig.num_questions_per_sent
+        self.scoring_method = scoring_method if scoring_method is not None else MQAGConfig.scoring_method
+        self.AT = AT if AT is not None else MQAGConfig.AT
+        self.beta1 = beta1 if beta1 is not None else MQAGConfig.beta1
+        self.beta2 = beta2 if beta2 is not None else MQAGConfig.beta2
 
 
     @torch.no_grad()
@@ -63,22 +75,25 @@ class SelfCheckMQAG(SelfCheckBase):
         self,
         sentences: List[str],
         sampled_passages: List[str],
-        **kwargs,
+        **kwargs
     ):
         """
         This function takes sentences (to be evaluated) with sampled passages (evidence), and return sent-level scores
-        :param sentences: list[str] -- sentences to be evaluated, e.g.
-        :param passage: str -- the passage to be evaluated, note that splitting(passage) ---> sentences
-        :param sampled_passages: list[str] -- stochastically generated responses (without sentence splitting)
-        :param num_questions_per_sent: int -- number of quetions to be generated per sentence
-        :return sent_scores: sentence-level score of the same length as len(sentences) # inconsistency_score, i.e. higher means likely hallucination
+        
+        Args:
+            sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
+            sampled_passages: List of stochastically generated responses (without sentence splitting)
+            **kwargs: Additional parameters for future extensibility
+            
+        Returns:
+            List of sentence-level scores (inconsistency scores, higher means likely hallucination)
         """
-
-        num_questions_per_sent = kwargs.get('num_questions_per_sent', MQAGConfig.num_questions_per_sent)
-        scoring_method = kwargs.get('scoring_method', MQAGConfig.scoring_method)
-        AT = kwargs.get('AT', MQAGConfig.AT)
-        beta1 = kwargs.get('beta1', MQAGConfig.beta1)
-        beta2 = kwargs.get('beta2', MQAGConfig.beta2)
+        # Use instance variables for parameters
+        num_questions_per_sent = self.num_questions_per_sent
+        scoring_method = self.scoring_method
+        AT = self.AT
+        beta1 = self.beta1
+        beta2 = self.beta2
 
         assert scoring_method in ['counting', 'bayes', 'bayes_with_alpha']
         num_samples = len(sampled_passages)
@@ -132,7 +147,7 @@ class SelfCheckMQAG(SelfCheckBase):
                 score = 0.0
 
                 if scoring_method == 'counting':
-                    score = method_simple_counting(p, u, p_s, u_s, num_samples, AT=kwargs['AT'])
+                    score = method_simple_counting(p, u, p_s, u_s, num_samples, AT=AT)
                 elif scoring_method == 'bayes':
                     score = method_vanilla_bayes(p, u, p_s, u_s, num_samples, beta1=beta1, beta2=beta2, AT=AT)
                 elif scoring_method == 'bayes_with_alpha':

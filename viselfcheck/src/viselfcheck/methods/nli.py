@@ -1,5 +1,4 @@
-import os
-from typing import List
+from typing import List, Optional
 
 import torch
 import numpy as np
@@ -15,7 +14,7 @@ class SelfCheckNLI(SelfCheckBase):
     """
     def __init__(
         self,
-        nli_model: str = None,
+        nli_model: Optional[str] = None,
         device = None,
         do_word_segmentation = None
     ):
@@ -40,11 +39,16 @@ class SelfCheckNLI(SelfCheckBase):
     ):
         """
         This function takes sentences (to be evaluated) with sampled passages (evidence), and return sent-level scores
-        :param sentences: list[str] -- sentences to be evaluated, e.g. GPT text response spilt by spacy
-        :param sampled_passages: list[str] -- stochastically generated responses (without sentence splitting)
-        :return sent_scores: sentence-level score which is P(condict|sentence, sample)
-        note that we normalize the probability on "entailment" or "contradiction" classes only
-        and the score is the probability of the "contradiction" class
+        
+        Args:
+            sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
+            sampled_passages: List of stochastically generated responses (without sentence splitting)
+            **kwargs: Additional parameters for future extensibility
+            
+        Returns:
+            List of sentence-level scores (0-1 range, higher means more inconsistent)
+            Note: This is P(contradiction|sentence, sample) - we normalize the probability on 
+            "entailment" or "contradiction" classes only and return the probability of the "contradiction" class
         """
         if self.do_word_segmentation:
             sentences = seg_list_fn(sentences, self.rdrsegmenter)

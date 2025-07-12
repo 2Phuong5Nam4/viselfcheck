@@ -39,9 +39,15 @@ class SelfCheckBERTScore(SelfCheckBase):
     )-> List[float]:
         """
         This function takes sentences (to be evaluated) with sampled passages (evidence), and return sent-level scores
-        :param sentences: list[str] -- sentences to be evaluated, e.g. GPT text response spilt by spacy
-        :param sampled_passages: list[str] -- stochastically generated responses (without sentence splitting)
-        :return sent_scores: sentence-level score which is 1.0 - bertscore
+        
+        Args:
+            sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
+            sampled_passages: List of stochastically generated responses (without sentence splitting)
+            **kwargs: Additional parameters for future extensibility
+            
+        Returns:
+            List of sentence-level scores (0-1 range, higher means more inconsistent)
+            Note: This is computed as 1.0 - bertscore
         """
         num_sentences = len(sentences)
         num_samples = len(sampled_passages)

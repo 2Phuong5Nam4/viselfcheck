@@ -136,20 +136,17 @@ scores = checker.predict(sentences, sample_examples)
 print(f"NLI scores: {scores}")
 ```
 
-### Advanced Usage
+### Service-Based Usage
+
+The `ViSelfCheck` service provides a unified interface with additional features:
 
 ```python
 from viselfcheck import ViSelfCheck
 
-# Initialize with specific configurations
-checker = ViSelfCheck(
-    method='bert_score',
-    lang='vi',
-    rescale_with_baseline=True,
-    device='cuda'  # Use GPU if available
-)
+# Initialize service with specific method
+checker = ViSelfCheck('bert_score', lang='vi', device='cuda')
 
-# Multiple sentences evaluation
+# Vietnamese text examples
 sentences = [
     "Việt Nam là một quốc gia ở Đông Nam Á.",
     "Hà Nội là thủ đô của Việt Nam.",
@@ -157,86 +154,64 @@ sentences = [
 ]
 
 sample_examples = [
-    "Việt Nam nằm ở khu vực Đông Nam Á với thủ đô Hà Nội.",
-    "Ẩm thực Việt Nam nổi tiếng với món phở truyền thống.",
-    "Đất nước hình chữ S này có văn hóa phong phú."
+    "Việt Nam nằm ở khu vực Đông Nam Á.",
+    "Thủ đô của Việt Nam là Hà Nội.",
+    "Phở là món ăn nổi tiếng của Việt Nam."
 ]
 
-# Get detailed results
+# Get consistency scores
 scores = checker.predict(sentences, sample_examples)
+print(f"Scores: {scores}")
 
-# Process results
-for i, (sentence, score) in enumerate(zip(sentences, scores)):
-    status = "✅ Consistent" if score > 0.7 else "⚠️ Inconsistent"
-    print(f"{i+1}. {status} (Score: {score:.3f})")
-    print(f"   {sentence}")
+# Service information methods
+print(f"Current method: {checker.get_current_method()}")
+print(f"Supported methods: {checker.get_supported_methods()}")
+
+# Get method information
+info = checker.get_method_info('bert_score')
+print(f"Method info: {info}")
+
+# Switch methods dynamically
+checker.switch_method('nli', device='cuda')
+nli_scores = checker.predict(sentences, sample_examples)
+print(f"NLI scores: {nli_scores}")
 ```
 
-### API-based Methods
+### Factory Functions
+
+Use convenience factory functions for quick setup:
 
 ```python
-from viselfcheck import ViSelfCheck
+from viselfcheck import (
+    create_bert_score_checker,
+    create_nli_checker,
+    create_mqag_checker,
+    create_ngram_checker,
+    create_prompt_checker,
+    create_hybrid_checker
+)
 
-# Using OpenAI API (auto-loads from .env)
-checker = ViSelfCheck('prompt')  # Uses .env configuration
-scores = checker.predict(sentences, sample_examples)
+# Create specialized checkers
+bert_checker = create_bert_score_checker(lang='vi', device='cuda')
+nli_checker = create_nli_checker(device='cuda')
+ngram_checker = create_ngram_checker(n=2, lowercase=True)
+prompt_checker = create_prompt_checker(client_type='openai', model='gpt-4')
 
-# Or specify API type explicitly
-checker = ViSelfCheck('prompt', client_type='openai')
-scores = checker.predict(sentences, sample_examples)
+# Use them directly
+sentences = ["Việt Nam là quốc gia Đông Nam Á."]
+examples = ["Việt Nam nằm ở Đông Nam Á."]
 
-# Using Groq API
-checker = ViSelfCheck('prompt', client_type='groq')
-scores = checker.predict(sentences, sample_examples)
+bert_scores = bert_checker.predict(sentences, examples)
+nli_scores = nli_checker.predict(sentences, examples)
+ngram_scores = ngram_checker.predict(sentences, examples)
+prompt_scores = prompt_checker.predict(sentences, examples)
 
-# Using Google Gemini API
-checker = ViSelfCheck('prompt', client_type='gemini')
-scores = checker.predict(sentences, sample_examples)
-
-# Test different APIs and compare
-apis = ['openai', 'groq', 'gemini']
-for api in apis:
-    try:
-        checker = ViSelfCheck('prompt', client_type=api)
-        scores = checker.predict(sentences, sample_examples)
-        print(f"{api}: {scores[0]:.4f}")
-    except Exception as e:
-        print(f"{api}: Not configured")
+print(f"BERTScore: {bert_scores[0]:.4f}")
+print(f"NLI: {nli_scores[0]:.4f}")
+print(f"N-gram: {ngram_scores[0]:.4f}")
+print(f"Prompt: {prompt_scores[0]:.4f}")
 ```
 
----
-
-## 🔧 Available Methods
-
-### 1. BERTScore (`bert_score`)
-- **Description**: Semantic similarity-based checking using BERT models
-- **Best for**: Semantic consistency evaluation
-- **Parameters**: `lang`, `rescale_with_baseline`, `device`
-
-### 2. NLI (`nli`)
-- **Description**: Natural Language Inference based checking
-- **Best for**: Logical consistency evaluation
-- **Parameters**: `device`
-
-### 3. MQAG (`mqag`)
-- **Description**: Multiple Choice Question Answering Generation
-- **Best for**: Fact-based consistency evaluation
-- **Parameters**: `device`
-
-### 4. N-gram (`ngram`)
-- **Description**: Statistical language model based checking
-- **Best for**: Language model consistency evaluation
-- **Parameters**: `n` (gram size), `lowercase`
-
-### 5. Prompt (`prompt`)
-- **Description**: API-based prompting using external LLMs
-- **Best for**: Advanced consistency evaluation with latest models
-- **Parameters**: `api_type`, `api_key`, `model`
-
-### 6. Hybrid (`hybrid`)
-- **Description**: Combined approach using multiple methods
-- **Best for**: Comprehensive consistency evaluation
-- **Parameters**: Combination of above methods
 
 ---
 
@@ -255,62 +230,6 @@ for api in apis:
 
 
 
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### 1. Python Version Error
-```bash
-# Error: Package requires Python 3.8
-# Solution: Install Python 3.8
-sudo apt install python3.8 python3.8-venv
-```
-
-#### 2. PyTorch Installation Issues
-```bash
-# Error: No module named '_ctypes'
-# Solution: Install system dependencies
-sudo apt install libffi-dev python3.8-dev
-```
-
-#### 3. Underthesea Import Error
-```bash
-# Error: No module named '_sqlite3'
-# Solution: Install sqlite3 development headers
-sudo apt install libsqlite3-dev
-```
-
-#### 4. BERT Score Import Error
-```bash
-# Error: No module named '_bz2'
-# Solution: Install bzip2 development headers
-sudo apt install libbz2-dev
-```
-
-### Performance Issues
-
-#### GPU Not Detected
-```python
-# Check GPU availability
-import torch
-print("CUDA available:", torch.cuda.is_available())
-
-# Force CPU usage if needed
-checker = ViSelfCheck('bert_score', device='cpu')
-```
-
-#### Memory Issues
-```python
-# Process in smaller batches
-def process_large_dataset(sentences, sample_examples, batch_size=32):
-    results = []
-    for i in range(0, len(sentences), batch_size):
-        batch_sentences = sentences[i:i+batch_size]
-        batch_examples = sample_examples[i:i+batch_size]
-        scores = checker.predict(batch_sentences, batch_examples)
-        results.extend(scores)
-    return results
-```
 
 ---
 
@@ -329,13 +248,14 @@ class ViSelfCheck:
             **kwargs: Method-specific parameters
         """
         
-    def predict(self, sentences: List[str], sample_examples: List[str]) -> List[float]:
+    def predict(self, sentences: List[str], sampled_passages: List[str], **kwargs) -> List[float]:
         """
         Predict consistency scores.
         
         Args:
             sentences: List of sentences to evaluate
-            sample_examples: List of reference examples
+            sampled_passages: List of reference examples
+            **kwargs: Additional method-specific parameters
             
         Returns:
             List of consistency scores (0-1, higher = more consistent)
@@ -349,9 +269,77 @@ class ViSelfCheck:
             method: New method name
             **kwargs: Method-specific parameters
         """
+        
+    def get_current_method(self) -> str:
+        """
+        Get the name of the currently active method.
+        
+        Returns:
+            str: Current method name
+        """
+        
+    def get_supported_methods(self) -> List[str]:
+        """
+        Get list of all supported methods.
+        
+        Returns:
+            List[str]: List of supported method names
+        """
+        
+    def get_method_info(self, method: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get information about a specific method or current method.
+        
+        Args:
+            method: Method name to get info for. If None, returns current method info.
+            
+        Returns:
+            Dict containing description, parameters, and use case
+        """
 ```
 
-### Helper Functions
+### Method-Specific Parameters
+
+#### BERTScore (`bert_score`)
+- `lang` (str): Language code (default: 'vi')
+- `rescale_with_baseline` (bool): Whether to rescale with baseline (default: False)
+- `device` (str|torch.device): Device for computation (default: None)
+
+#### NLI (`nli`)
+- `nli_model` (str): NLI model to use (default: None)
+- `device` (str|torch.device): Device for computation (default: None)
+- `do_word_segmentation` (bool): Whether to perform word segmentation (default: None)
+
+#### MQAG (`mqag`)
+- `qa_generator_checkpoint` (str): Path to QA generator checkpoint (default: None)
+- `distractor_generator_checkpoint` (str): Path to distractor generator checkpoint (default: None)
+- `question_answerer_checkpoint` (str): Path to question answerer checkpoint (default: None)
+- `question_curator_checkpoint` (str): Path to question curator checkpoint (default: None)
+- `device` (str|torch.device): Device for computation (default: None)
+- `seed` (int): Random seed for reproducibility (default: 42)
+- `num_questions_per_sent` (int): Number of questions per sentence (default: None)
+- `scoring_method` (str): Scoring method - 'counting', 'bayes', or 'bayes_with_alpha' (default: None)
+- `AT` (float): Answerability threshold (default: None)
+- `beta1` (float): Beta1 parameter for Bayes scoring (default: None)
+- `beta2` (float): Beta2 parameter for Bayes scoring (default: None)
+
+#### N-gram (`ngram`)
+- `n` (int): N-gram size (default: 1)
+- `lowercase` (bool): Whether to convert to lowercase (default: True)
+
+#### Prompt (`prompt`)
+- `client_type` (str): API client type - 'openai', 'groq', or 'gemini' (default: 'openai')
+- `model` (str): Model name to use (default: 'gpt-3.5-turbo')
+- `api_key` (str): API key for authentication (default: None, loads from .env)
+
+#### Hybrid (`hybrid`)
+- `nli_model` (str): NLI model to use (default: None)
+- `device` (str|torch.device): Device for computation (default: None)
+- `do_word_segmentation` (bool): Whether to perform word segmentation (default: None)
+- `llm_model` (str): LLM model to use (default: None)
+- `api_key` (str): API key for LLM component (default: None)
+
+### Factory Functions
 
 ```python
 # Create method-specific checkers
@@ -366,6 +354,9 @@ from viselfcheck import (
 
 # Example usage
 checker = create_bert_score_checker(lang='vi', device='cuda')
+checker = create_nli_checker(device='cuda')
+checker = create_ngram_checker(n=2, lowercase=True)
+checker = create_prompt_checker(client_type='openai', model='gpt-4')
 ```
 
 ---
@@ -374,40 +365,50 @@ checker = create_bert_score_checker(lang='vi', device='cuda')
 
 ### 1. Content Generation Validation
 ```python
+from viselfcheck import ViSelfCheck
+
+# Initialize service with hybrid method for comprehensive checking
+checker = ViSelfCheck('hybrid', device='cuda')
+
 # Validate AI-generated content
 generated_articles = get_generated_articles()
 reference_sources = get_reference_sources()
 
-checker = ViSelfCheck('hybrid')
 scores = checker.predict(generated_articles, reference_sources)
 
 # Filter high-quality content
-quality_content = [
-    article for article, score in zip(generated_articles, scores)
-    if score > 0.8
-]
+quality_content = []
+for article, score in zip(generated_articles, scores):
+    status = "✅ Consistent" if score > 0.8 else "⚠️ Inconsistent"
+    print(f"{status} (Score: {score:.3f}): {article[:50]}...")
+    
+    if score > 0.8:
+        quality_content.append(article)
+
+print(f"Accepted {len(quality_content)}/{len(generated_articles)} articles")
 ```
 
 ### 2. Translation Quality Assessment
 ```python
+from viselfcheck import create_bert_score_checker
+
+# Create specialized checker for translation assessment
+checker = create_bert_score_checker(lang='vi', device='cuda', rescale_with_baseline=True)
+
 # Assess translation consistency
-original_texts = ["Original English text..."]
-translated_texts = ["Bản dịch tiếng Việt..."]
+original_texts = ["Original English text about Vietnam's economy..."]
+translated_texts = ["Văn bản tiếng Việt về nền kinh tế Việt Nam..."]
 
-checker = ViSelfCheck('bert_score', lang='vi')
 scores = checker.predict(translated_texts, original_texts)
+
+# Evaluate translation quality
+for orig, trans, score in zip(original_texts, translated_texts, scores):
+    quality = "Excellent" if score > 0.9 else "Good" if score > 0.7 else "Needs Review"
+    print(f"Translation Quality: {quality} (Score: {score:.3f})")
+    print(f"Original: {orig[:50]}...")
+    print(f"Translation: {trans[:50]}...")
 ```
 
-### 3. Chatbot Response Validation
-```python
-# Validate chatbot responses
-user_queries = ["Việt Nam có bao nhiêu tỉnh thành?"]
-bot_responses = ["Việt Nam có 63 tỉnh thành."]
-knowledge_base = ["Việt Nam gồm 63 tỉnh thành phố..."]
-
-checker = ViSelfCheck('nli')
-scores = checker.predict(bot_responses, knowledge_base)
-```
 
 ---
 
