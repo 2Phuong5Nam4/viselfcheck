@@ -11,6 +11,7 @@ class MQAGConfig:
 
 class BertScoreConfig:
     min_bert_score: float = 0.40663
+    lang: str = "microsoft/deberta-xlarge-mnli"
 
 class NLIConfig:
     nli_model: str = "pgnguyen/phobert-large-nli"

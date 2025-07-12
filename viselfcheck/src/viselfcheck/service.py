@@ -314,7 +314,7 @@ class ViSelfCheck:
 # ================================
 
 def create_bert_score_checker(
-    lang: str = 'vi',
+    lang: Optional[str] = None,
     rescale_with_baseline: bool = False,
     device: Optional[Union[str, torch.device]] = None
 ) -> ViSelfCheck:

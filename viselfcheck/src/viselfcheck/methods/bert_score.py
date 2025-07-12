@@ -10,12 +10,11 @@ from underthesea import sent_tokenize
 
 
 
-
 class SelfCheckBERTScore(SelfCheckBase):
     """
     SelfCheckGPT (BERTScore variant): Checking LLM's text against its own sampled texts via BERTScore (against best-matched sampled sentence)
     """
-    def __init__(self, lang="vi", rescale_with_baseline=False, device=None):
+    def __init__(self,  rescale_with_baseline=False, device=None, lang: Optional[str] = None, sent_tokenize=sent_tokenize):
         """
         :default_model: model for BERTScore
         :rescale_with_baseline:
@@ -24,10 +23,12 @@ class SelfCheckBERTScore(SelfCheckBase):
             - see https://github.com/Tiiiger/bert_score/blob/master/journal/rThe inter-annotator agreementescale_baseline.md
         """
         self.sent_tokenize = sent_tokenize
+
+        if lang is None:
+            lang = BertScoreConfig.lang
         self.lang = lang # en
         self.rescale_with_baseline = rescale_with_baseline
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
-        self.min_bert_score = BertScoreConfig.min_bert_score
         print("SelfCheck-BERTScore initialized with device:", device)
 
     @torch.no_grad()
@@ -67,11 +68,10 @@ class SelfCheckBERTScore(SelfCheckBase):
             P, R, F1 = bert_score.score(
                     cands, refs,
                     verbose=False,
+                    rescale_with_baseline=self.rescale_with_baseline,
                     device=self.device,
                     lang=self.lang,
             )
-            if self.rescale_with_baseline:
-                F1 = (F1 - self.min_bert_score) / (1.0 - self.min_bert_score)
 
             F1_arr = F1.reshape(num_sentences, num_sentences_sample)
             F1_arr_max_axis1 = F1_arr.max(dim=1).values.cpu().numpy()
