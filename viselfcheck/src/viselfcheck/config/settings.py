@@ -9,10 +9,11 @@ class MQAGConfig:
     beta1: float = 0.8
     beta2: float = 0.8
 
-class BertScoreConfig:
-    min_bert_score: float = 0.40663
-    lang: str = "microsoft/deberta-xlarge-mnli"
 
 class NLIConfig:
     nli_model: str = "pgnguyen/phobert-large-nli"
     do_word_segmentation: bool = True
+
+
+class BertScoreConfig:
+    model_type: str = "vinai/phobert-base"  # Default model for Vietnamese
