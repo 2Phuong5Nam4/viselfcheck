@@ -35,9 +35,7 @@ def evaluate_bert_score_model(
     model_name: str, 
     dataset, 
     device, 
-    rescale_with_baseline: bool = True,
-    hash_file: Optional[str] = None,
-    language_override: Optional[str] = None
+    rescale_with_baseline: bool = False,
 ):
     """
     Evaluate BERTScore with a specific model.
@@ -55,9 +53,6 @@ def evaluate_bert_score_model(
     """
     print("=" * 60)
     print(f"Evaluating BERTScore with model: {model_name}")
-    print(f"Rescale with baseline: {rescale_with_baseline}")
-    if language_override:
-        print(f"Language override: {language_override}")
     
     # Initialize BERTScore checker with specific model
     bert_score_params = {
@@ -66,11 +61,6 @@ def evaluate_bert_score_model(
         'device': device
     }
     
-    if hash_file:
-        bert_score_params['hash_file'] = hash_file
-    
-    if language_override:
-        bert_score_params['lang'] = language_override
     
     try:
         checker = ViSelfCheck(method='bert_score', **bert_score_params)
@@ -108,179 +98,56 @@ def evaluate_bert_score_model(
         return None
 
 
-def evaluate_all_bert_score_models(dataset, device, model_configs):
+
+def evaluate_all_models(model_names, dataset, device):
     """
-    Evaluate BERTScore with multiple models and configurations.
+    Evaluate all models and collect results.
     
     Args:
+        model_names: List of model names to evaluate
         dataset: Dataset to evaluate on
         device: Device to use for computation
-        model_configs: Dictionary of model configurations
         
     Returns:
         List of result dictionaries
     """
     all_results = []
     
-    for config_name, config in model_configs.items():
+    for model_name in model_names:
+        print(f"\n{'='*70}")
+        print(f"EVALUATING MODEL: {model_name.upper()}")
+        print(f"{'='*70}")
+        
         try:
-            print(f"\n{'='*70}")
-            print(f"EVALUATING BERT-SCORE CONFIG: {config_name.upper()}")
-            print(f"{'='*70}")
-            
-            # Extract model parameters
-            model_name = config['model_name']
-            params = config.get('params', {})
-            result_name = config.get('result_name', f"BERTScore-{model_name}")
-            
             # Evaluate the model
             scores = evaluate_bert_score_model(
                 model_name=model_name,
                 dataset=dataset,
                 device=device,
-                **params
+                rescale_with_baseline=False
             )
             
             if scores is not None:
+                # Create result name from model name
+       
                 # Collect results
-                result = result_collect(scores, dataset, result_name)
+                result = result_collect(scores, dataset, model_name)
                 all_results.append(result)
                 
-                print(f"Results for {result_name}:")
+                print(f"Results for {model_name}:")
                 for key, value in result.items():
                     if key != 'Method':
                         print(f"  {key}: {value:.2f}")
             else:
-                print(f"Failed to evaluate {config_name}")
+                print(f"Failed to evaluate {model_name}")
                 
         except Exception as e:
-            print(f"Error evaluating {config_name}: {e}")
+            print(f"Error evaluating {model_name}: {e}")
             import traceback
             traceback.print_exc()
             continue
     
     return all_results
-
-
-def get_language_model_configs():
-    """
-    Define configurations for different language models to test.
-    
-    Returns:
-        Dictionary of model configurations
-    """
-    configs = {
-        # Multilingual models
-        'mbert_base': {
-            'model_name': 'bert-base-multilingual-cased',
-            'params': {'rescale_with_baseline': True},
-            'result_name': 'mBERT-base'
-        },
-        'mbert_base_no_rescale': {
-            'model_name': 'bert-base-multilingual-cased',
-            'params': {'rescale_with_baseline': False},
-            'result_name': 'mBERT-base-NoRescale'
-        },
-        'xlm_roberta_base': {
-            'model_name': 'xlm-roberta-base',
-            'params': {'rescale_with_baseline': True},
-            'result_name': 'XLM-R-base'
-        },
-        'xlm_roberta_large': {
-            'model_name': 'xlm-roberta-large',
-            'params': {'rescale_with_baseline': True},
-            'result_name': 'XLM-R-large'
-        },
-        
-        # Vietnamese-specific models
-        'phobert_base': {
-            'model_name': 'vinai/phobert-base',
-            'params': {'rescale_with_baseline': True, 'language_override': 'vi'},
-            'result_name': 'PhoBERT-base'
-        },
-        'phobert_large': {
-            'model_name': 'vinai/phobert-large',
-            'params': {'rescale_with_baseline': True, 'language_override': 'vi'},
-            'result_name': 'PhoBERT-large'
-        },
-        'bartpho_base': {
-            'model_name': 'vinai/bartpho-syllable-base',
-            'params': {'rescale_with_baseline': True, 'language_override': 'vi'},
-            'result_name': 'BARTPho-base'
-        },
-        
-        # English models for comparison
-        'bert_base_uncased': {
-            'model_name': 'bert-base-uncased',
-            'params': {'rescale_with_baseline': True, 'language_override': 'en'},
-            'result_name': 'BERT-base-uncased'
-        },
-        'roberta_base': {
-            'model_name': 'roberta-base',
-            'params': {'rescale_with_baseline': True, 'language_override': 'en'},
-            'result_name': 'RoBERTa-base'
-        },
-        'roberta_large': {
-            'model_name': 'roberta-large',
-            'params': {'rescale_with_baseline': True, 'language_override': 'en'},
-            'result_name': 'RoBERTa-large'
-        },
-        
-        # Additional multilingual models
-        'distilbert_multilingual': {
-            'model_name': 'distilbert-base-multilingual-cased',
-            'params': {'rescale_with_baseline': True},
-            'result_name': 'DistilBERT-multilingual'
-        }
-    }
-    
-    return configs
-
-
-def test_quick_models(dataset, device, num_samples: int = 5):
-    """Test a few models quickly with a small dataset sample."""
-    print("=" * 60)
-    print("QUICK TEST WITH SELECTED MODELS")
-    print("=" * 60)
-    
-    # Use only first few datapoints for quick testing
-    test_size = min(num_samples, len(dataset))
-    test_dataset = [dataset[i] for i in range(test_size)]
-    
-    # Convert to Dataset object
-    from datasets import Dataset
-    test_dataset_obj = Dataset.from_list(test_dataset)
-    
-    # Test configurations (subset of models for quick testing)
-    quick_configs = {
-        'mbert_base': {
-            'model_name': 'bert-base-multilingual-cased',
-            'params': {'rescale_with_baseline': True},
-            'result_name': 'mBERT-base'
-        },
-        'xlm_roberta_base': {
-            'model_name': 'xlm-roberta-base',
-            'params': {'rescale_with_baseline': True},
-            'result_name': 'XLM-R-base'
-        },
-        'phobert_base': {
-            'model_name': 'vinai/phobert-base',
-            'params': {'rescale_with_baseline': True, 'language_override': 'vi'},
-            'result_name': 'PhoBERT-base'
-        }
-    }
-    
-    results = evaluate_all_bert_score_models(test_dataset_obj, device, quick_configs)
-    
-    if results:
-        df_result = pd.DataFrame(results).set_index('Method').round(2)
-        print("\n" + "=" * 60)
-        print("QUICK TEST RESULTS")
-        print("=" * 60)
-        print(df_result)
-        return df_result
-    
-    return None
 
 
 def main():
@@ -295,12 +162,9 @@ def main():
     parser.add_argument('--device', default='auto',
                        help='Device to use (cpu/cuda/auto)')
     parser.add_argument('--models', nargs='+', 
-                       default=['mbert_base', 'xlm_roberta_base', 'phobert_base', 'roberta_base'],
-                       help='Model configurations to evaluate')
+                       help='Model names to evaluate (e.g.,bert-base-multilingual-cased)')
     parser.add_argument('--output-file', default='bert_score_results.csv',
                        help='Output CSV file name')
-    parser.add_argument('--include-baseline-comparison', action='store_true',
-                       help='Include both rescaled and non-rescaled versions')
     
     args = parser.parse_args()
     
@@ -329,42 +193,43 @@ def main():
     
     # Quick test mode
     if args.quick_test:
-        result_df = test_quick_models(dataset, device, args.num_samples)
-        if result_df is not None:
-            test_output_file = f'bert_score_quick_test_results.csv'
-            result_df.to_csv(test_output_file)
+        test_models = ['bert-base-multilingual-cased', 'microsoft/deberta-xlarge-mnli']
+        test_size = min(args.num_samples, len(dataset))
+        test_dataset = [dataset[i] for i in range(test_size)]
+        
+        all_results = evaluate_all_models(test_models, test_dataset, device)
+        if all_results:
+            df_result = pd.DataFrame(all_results).set_index('Method').round(2)
+            test_output_file = args.output_file
+            df_result.to_csv(test_output_file)
             print(f"\nQuick test results saved to {test_output_file}")
         return
     
-    # Get all model configurations
-    all_model_configs = get_language_model_configs()
+    # Get model names to evaluate
+    if args.models:
+        model_names = args.models
+        print(f"\nEvaluating BERTScore with specified models: {model_names}")
+    else:
+        # Default models if none specified
+        model_names = [
+            'vinai/phobert-base-v2',
+            'bert-base-multilingual-cased', 
+            'vinai/phobert-large',
+            'microsoft/deberta-xlarge-mnli',
+            'microsoft/deberta-v2-xxlarge-mnli',
+            'microsoft/deberta-xlarge'
+        ]
+        print(f"\nEvaluating BERTScore with default models: {model_names}")
     
-    # Filter models based on user selection
-    filtered_configs = {k: v for k, v in all_model_configs.items() if k in args.models}
-    
-    # Add baseline comparison versions if requested
-    if args.include_baseline_comparison:
-        additional_configs = {}
-        for config_name, config in filtered_configs.items():
-            if config['params'].get('rescale_with_baseline', True):
-                no_rescale_config = config.copy()
-                no_rescale_config['params'] = config['params'].copy()
-                no_rescale_config['params']['rescale_with_baseline'] = False
-                no_rescale_config['result_name'] = config['result_name'] + '-NoRescale'
-                additional_configs[config_name + '_no_rescale'] = no_rescale_config
-        
-        filtered_configs.update(additional_configs)
-    
-    # Run all evaluations
-    print(f"\nEvaluating BERTScore with models: {list(filtered_configs.keys())}")
-    all_results = evaluate_all_bert_score_models(dataset, device, filtered_configs)
+    # Run all evaluations with specified models
+    all_results = evaluate_all_models(model_names, dataset, device)
     
     # Create and display results
     if all_results:
         df_result = pd.DataFrame(all_results).set_index('Method').round(2)
         
         print("\n" + "=" * 80)
-        print("FINAL BERT-SCORE MULTILINGUAL EVALUATION RESULTS")
+        print("FINAL BERT-SCORE EVALUATION RESULTS")
         print("=" * 80)
         print(df_result)
         
