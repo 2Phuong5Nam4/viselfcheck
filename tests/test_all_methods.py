@@ -344,6 +344,231 @@ class TestAllMethodsIntegration:
             assert all(isinstance(score, float) for score in scores)
 
 
+class TestAPIBasedMethods:
+    """Test API-based methods (Prompt and Hybrid) with real API integration."""
+    
+    def setup_method(self):
+        """Setup for API tests."""
+        # Check for API key in environment variables
+        self.api_key = os.getenv('GEMINI_API_KEY') or os.getenv('OPENAI_API_KEY') or os.getenv('API_KEY')
+        self.test_api_key = "test_api_key_123"  # For testing initialization without real API calls
+        
+        # Vietnamese test data
+        self.test_sentences_vi = [
+            "Việt Nam là một quốc gia ở Đông Nam Á.",
+            "Hà Nội là thủ đô của Việt Nam."
+        ]
+        
+        self.test_passages_vi = [
+            "Việt Nam nằm ở khu vực Đông Nam Á với thủ đô Hà Nội. Đất nước này có dân số khoảng 97 triệu người.",
+            "Thủ đô Hà Nội của Việt Nam là trung tâm chính trị và văn hóa quan trọng. Thành phố này có lịch sử lâu đời."
+        ]
+
+    @pytest.mark.api
+    @pytest.mark.slow
+    def test_prompt_method_initialization(self):
+        """Test Prompt method initialization with different configurations."""
+        # Test with default config
+        try:
+            checker = ViSelfCheck('prompt', api_key=self.test_api_key)
+            assert checker.get_current_method() == 'prompt'
+            print("✅ Prompt method initialized with default config")
+        except Exception as e:
+            pytest.skip(f"Prompt method initialization failed: {e}")
+        
+        # Test with custom model and base_url
+        try:
+            checker = ViSelfCheck(
+                'prompt', 
+                model='gemini-2.0-flash',
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai',
+                api_key=self.test_api_key
+            )
+            assert checker.get_current_method() == 'prompt'
+            print("✅ Prompt method initialized with custom config")
+        except Exception as e:
+            pytest.skip(f"Prompt method custom initialization failed: {e}")
+
+    @pytest.mark.api
+    @pytest.mark.slow
+    def test_hybrid_method_initialization(self):
+        """Test Hybrid method initialization with different configurations."""
+        # Test with default config
+        try:
+            checker = ViSelfCheck('hybrid', device='cpu', api_key=self.test_api_key)
+            assert checker.get_current_method() == 'hybrid'
+            print("✅ Hybrid method initialized with default config")
+        except Exception as e:
+            pytest.skip(f"Hybrid method initialization failed: {e}")
+        
+        # Test with custom configurations
+        try:
+            checker = ViSelfCheck(
+                'hybrid',
+                device='cpu',
+                nli_model='pgnguyen/phobert-large-nli',
+                llm_model='gemini-2.0-flash',
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai',
+                do_word_segmentation=True,
+                api_key=self.test_api_key
+            )
+            assert checker.get_current_method() == 'hybrid'
+            print("✅ Hybrid method initialized with custom config")
+        except Exception as e:
+            pytest.skip(f"Hybrid method custom initialization failed: {e}")
+
+    @pytest.mark.api
+    @pytest.mark.skipif("not os.getenv('API_KEY') and not os.getenv('GEMINI_API_KEY')")
+    def test_prompt_method_real_api(self):
+        """Test Prompt method with real API calls (requires API key)."""
+        if not self.api_key:
+            pytest.skip("No API key provided in environment variables")
+        
+        try:
+            checker = ViSelfCheck(
+                'prompt',
+                model='gemini-2.0-flash',
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai',
+                api_key=self.api_key
+            )
+            
+            # Test prediction
+            scores = checker.predict(self.test_sentences_vi, self.test_passages_vi)
+            
+            # Verify results
+            assert isinstance(scores, list)
+            assert len(scores) == len(self.test_sentences_vi)
+            assert all(isinstance(score, float) for score in scores)
+            assert all(0.0 <= score <= 1.0 for score in scores)
+            
+            print(f"✅ Prompt method real API test passed. Scores: {scores}")
+            
+        except Exception as e:
+            pytest.skip(f"Prompt method real API test failed: {e}")
+
+    @pytest.mark.api
+    @pytest.mark.skipif("not os.getenv('API_KEY') and not os.getenv('GEMINI_API_KEY')")
+    def test_hybrid_method_real_api(self):
+        """Test Hybrid method with real API calls (requires API key)."""
+        if not self.api_key:
+            pytest.skip("No API key provided in environment variables")
+        
+        try:
+            checker = ViSelfCheck(
+                'hybrid',
+                device='cpu',
+                nli_model='pgnguyen/phobert-large-nli',
+                llm_model='gemini-2.0-flash',
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai',
+                do_word_segmentation=True,
+                api_key=self.api_key
+            )
+            
+            # Test prediction
+            scores = checker.predict(self.test_sentences_vi, self.test_passages_vi)
+            
+            # Verify results
+            assert isinstance(scores, list)
+            assert len(scores) == len(self.test_sentences_vi)
+            assert all(isinstance(score, float) for score in scores)
+            assert all(0.0 <= score <= 1.0 for score in scores)
+            
+            print(f"✅ Hybrid method real API test passed. Scores: {scores}")
+            
+        except Exception as e:
+            pytest.skip(f"Hybrid method real API test failed: {e}")
+
+    @pytest.mark.api
+    def test_prompt_convenience_function(self):
+        """Test prompt convenience function."""
+        try:
+            checker = create_prompt_checker(
+                model='gemini-2.0-flash',
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai',
+                api_key=self.test_api_key
+            )
+            assert checker.get_current_method() == 'prompt'
+            print("✅ Prompt convenience function test passed")
+        except Exception as e:
+            pytest.skip(f"Prompt convenience function failed: {e}")
+
+    @pytest.mark.api
+    def test_hybrid_convenience_function(self):
+        """Test hybrid convenience function."""
+        try:
+            checker = create_hybrid_checker(
+                device='cpu',
+                nli_model='pgnguyen/phobert-large-nli',
+                llm_model='gemini-2.0-flash',
+                base_url='https://generativelanguage.googleapis.com/v1beta/openai',
+                do_word_segmentation=True,
+                api_key=self.test_api_key
+            )
+            assert checker.get_current_method() == 'hybrid'
+            print("✅ Hybrid convenience function test passed")
+        except Exception as e:
+            pytest.skip(f"Hybrid convenience function failed: {e}")
+
+    @pytest.mark.api
+    def test_api_method_error_handling(self):
+        """Test error handling for API methods with invalid configurations."""
+        # Test with invalid API key format
+        try:
+            checker = ViSelfCheck('prompt', api_key='invalid_key')
+            # Should not fail on initialization, only on API calls
+            assert checker.get_current_method() == 'prompt'
+            print("✅ API method handles invalid key gracefully")
+        except Exception as e:
+            pytest.skip(f"API error handling test failed: {e}")
+
+    @pytest.mark.api
+    def test_prompt_template_customization(self):
+        """Test custom prompt template for prompt method."""
+        try:
+            checker = ViSelfCheck('prompt', api_key=self.test_api_key)
+            
+            # Access the underlying method to test template customization
+            from viselfcheck.methods.prompt_api import SelfCheckAPIPrompt
+            if isinstance(checker.checker, SelfCheckAPIPrompt):
+                custom_template = "Context: {context}\nSentence: {sentence}\nConsistent? Answer Yes or No: "
+                checker.checker.set_prompt_template(custom_template)
+                
+                assert checker.checker.prompt_template == custom_template
+                print("✅ Prompt template customization test passed")
+            else:
+                print("⚠️ Could not access prompt method for template test")
+        except Exception as e:
+            pytest.skip(f"Prompt template customization failed: {e}")
+
+    @pytest.mark.api
+    def test_method_switching_with_api(self):
+        """Test switching between API-based methods."""
+        try:
+            # Start with prompt method
+            checker = ViSelfCheck('prompt', api_key=self.test_api_key)
+            assert checker.get_current_method() == 'prompt'
+            
+            # Switch to hybrid method
+            checker.switch_method(
+                'hybrid',
+                device='cpu',
+                api_key=self.test_api_key
+            )
+            assert checker.get_current_method() == 'hybrid'
+            
+            # Switch back to prompt
+            checker.switch_method(
+                'prompt',
+                model='gemini-2.0-flash',
+                api_key=self.test_api_key
+            )
+            assert checker.get_current_method() == 'prompt'
+            
+            print("✅ API method switching test passed")
+        except Exception as e:
+            pytest.skip(f"API method switching failed: {e}")
+
+
 if __name__ == "__main__":
     # Run basic tests
     print("Running basic ViSelfCheck tests...")

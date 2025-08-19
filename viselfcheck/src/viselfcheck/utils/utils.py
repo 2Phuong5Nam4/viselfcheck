@@ -107,6 +107,14 @@ def expand_list2(mylist, num):
     return expanded
 
 # ============================== Word segmentation utilities for NLI ================================
+def get_vncorenlp_path():
+    """
+    Get the standardized VnCoreNLP installation path relative to the package root.
+    This ensures VnCoreNLP is always located in the same place regardless of working directory.
+    """
+    package_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    return os.path.join(package_root, "vncorenlp")
+
 def seg_fn(text, rdrsegmenter):
     return ' '.join(rdrsegmenter.word_segment(text))
 
@@ -132,35 +140,28 @@ def _create_vncorenlp_instance():
     """
     Internal function to create VnCoreNLP instance.
     This handles the actual VnCoreNLP initialization logic.
+    VnCoreNLP will always be installed and loaded from a fixed location within the package.
     """
-    # Look for VnCoreNLP in the project directory first
-    current_wd = os.getcwd()
+    # Always use a fixed location relative to the package root for VnCoreNLP
+    # This ensures VnCoreNLP is always loaded from the same location regardless of working directory
+    vncorenlp_path = get_vncorenlp_path()
     
-    # Try project directory (where vncorenlp was installed)
-    project_vncorenlp_path = None
-    possible_paths = [
-        os.path.join(current_wd, "vncorenlp"),
-        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "vncorenlp"),
-    ]
-    
-    for path in possible_paths:
-        if os.path.exists(path) and os.path.exists(os.path.join(path, "models")) and os.path.exists(os.path.join(path, "VnCoreNLP-1.2.jar")):
-            project_vncorenlp_path = path
-            break
-    
-    if project_vncorenlp_path:
-        vncorenlp_path = project_vncorenlp_path
-        # print(f"Found VnCoreNLP at: {vncorenlp_path}")
-    else:
-        # Fall back to current working directory
-        vncorenlp_path = os.path.join(current_wd, "vncorenlp")
+    # Check if VnCoreNLP is already installed at the package location
+    if not (os.path.exists(vncorenlp_path) and 
+            os.path.exists(os.path.join(vncorenlp_path, "models")) and 
+            os.path.exists(os.path.join(vncorenlp_path, "VnCoreNLP-1.2.jar"))):
+        # Create directory and download VnCoreNLP if not exists
+        print(f"VnCoreNLP not found at {vncorenlp_path}. Downloading...")
         if not os.path.exists(vncorenlp_path):
             os.makedirs(vncorenlp_path)
-            py_vncorenlp.download_model(save_dir=vncorenlp_path)
+        py_vncorenlp.download_model(save_dir=vncorenlp_path)
+        print(f"VnCoreNLP downloaded to: {vncorenlp_path}")
+    else:
+        print(f"Using existing VnCoreNLP installation at: {vncorenlp_path}")
 
     try:
         rdrsegmenter = py_vncorenlp.VnCoreNLP(annotators=['wseg'], save_dir=vncorenlp_path)
-        # print("VnCoreNLP word segmentation model initialized successfully")
+        print(f"VnCoreNLP word segmentation model initialized successfully from: {vncorenlp_path}")
         return rdrsegmenter
     except Exception as e:
         # Handle JVM already running error
@@ -174,7 +175,7 @@ def _create_vncorenlp_instance():
             except Exception as inner_e:
                 raise RuntimeError(f"Failed to reuse existing VnCoreNLP instance: {inner_e}")
         else:
-            raise RuntimeError(f"Error initializing VnCoreNLP: {e}")
+            raise RuntimeError(f"Error initializing VnCoreNLP from {vncorenlp_path}: {e}")
 
 def reset_vncorenlp_instance():
     """
@@ -184,7 +185,7 @@ def reset_vncorenlp_instance():
     global _vncorenlp_instance
     with _vncorenlp_lock:
         _vncorenlp_instance = None
-        # print("VnCoreNLP instance reset")
+        print("VnCoreNLP instance reset")
 
 def is_vncorenlp_initialized():
     """

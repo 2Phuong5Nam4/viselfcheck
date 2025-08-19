@@ -11,9 +11,15 @@ class MQAGConfig:
 
 
 class NLIConfig:
-    nli_model: str = "pgnguyen/phobert-large-nli"
+    nli_model: str =  "pgnguyen/phobert-large-nli"
     do_word_segmentation: bool = True
 
 
 class BertScoreConfig:
-    model_type: str = "vinai/phobert-base"  # Default model for Vietnamese
+    model_type: str = "microsoft/deberta-xlarge-mnli"  # Default model for Vietnamese
+    min_bert_score: float = 0.40663
+
+
+class APIPromptConfig:
+    llm_model: str = "gemini-2.0-flash"
+    base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"

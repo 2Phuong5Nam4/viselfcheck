@@ -53,10 +53,19 @@ sudo apt update
 sudo apt install python3.8
 sudo apt install python3.8-dev python3.8-venv python3.8-distutils
 
+# Install Java Development Kit (JDK) - Required for VnCoreNLP
+sudo apt install openjdk-11-jdk
+
+# Verify Java installation
+java -version
+javac -version
 
 # Windows
-# Download from https://www.python.org/downloads/release/python-3815/
+# Download Python 3.8 from https://www.python.org/downloads/release/python-3815/
+# Download OpenJDK from https://adoptium.net/ or Oracle JDK
 ```
+
+**Important**: Java (JDK) is required for Vietnamese text processing using VnCoreNLP. Make sure `javac` is available in your PATH.
 
 ### Quick Install
 
@@ -95,17 +104,16 @@ nano .env  # or use your preferred editor
 
 Example `.env` configuration:
 ```bash
-# OpenAI API Configuration
-OPENAI_API_KEY=sk-your-actual-openai-key-here
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-3.5-turbo
 
-# Groq API Configuration  
-GROQ_API_KEY=gsk_your-actual-groq-key-here
-GROQ_MODEL=llama3-8b-8192
+# Gemini Configuration  
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+GEMINI_MODEL=gemini-2.0-flash
 
-# Google Gemini API Configuration
-GEMINI_API_KEY=your-actual-gemini-key-here
-GEMINI_MODEL=gemini-pro
 ```
 
 That's it! Everything will be installed automatically.

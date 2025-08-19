@@ -1,12 +1,14 @@
 from typing import List, Optional, Union, Dict, Any
 import torch
+import os
+from dotenv import load_dotenv
 
 from .base import SelfCheckBase
 from .methods.bert_score import SelfCheckBERTScore
 from .methods.nli import SelfCheckNLI
 from .methods.mqag import SelfCheckMQAG
 from .methods.ngram import SelfCheckNgram
-from .methods.prompt import SelfCheckAPIPrompt
+from .methods.prompt_api import SelfCheckAPIPrompt
 from .methods.hybrid import SelfCheckHybrid
 
 
@@ -44,6 +46,9 @@ class ViSelfCheck:
         Raises:
             ValueError: If the specified method is not supported
         """
+        # Load environment variables
+        load_dotenv()
+        
         self.method_name = method.lower()
 
         if self.method_name not in self.SUPPORTED_METHODS:
@@ -58,6 +63,31 @@ class ViSelfCheck:
     # ================================
     # Private Helper Methods
     # ================================
+
+    def _load_env_config(self, provider: str = 'openai') -> Dict[str, Optional[str]]:
+        """
+        Load configuration from environment variables for a specific provider.
+        
+        Args:
+            provider: The provider to load config for ('openai' or 'gemini')
+            
+        Returns:
+            Dict containing api_key, base_url, and model
+        """
+        if provider.lower() == 'openai':
+            return {
+                'api_key': os.getenv('OPENAI_API_KEY'),
+                'base_url': os.getenv('OPENAI_BASE_URL'),
+                'model': os.getenv('OPENAI_MODEL')
+            }
+        elif provider.lower() == 'gemini':
+            return {
+                'api_key': os.getenv('GEMINI_API_KEY'),
+                'base_url': os.getenv('GEMINI_BASE_URL'),
+                'model': os.getenv('GEMINI_MODEL')
+            }
+        else:
+            return {}
 
     def _handle_device(self, device: Optional[Union[str, torch.device]]) -> Optional[torch.device]:
         """
@@ -134,19 +164,36 @@ class ViSelfCheck:
                 )
 
             elif self.method_name == 'prompt':
+                # Load configuration from environment variables if not provided
+                env_config = self._load_env_config('openai')  # Default to OpenAI
+                
+                # Check if user wants to use Gemini
+                model = kwargs.get('model', env_config.get('model'))
+                if model and 'gemini' in model.lower():
+                    env_config = self._load_env_config('gemini')
+                
                 return self.method_class(
-                    client_type=kwargs.get('client_type', 'openai'),
-                    model=kwargs.get('model', 'gpt-3.5-turbo'),
-                    api_key=kwargs.get('api_key', None)
+                    model=kwargs.get('model', env_config.get('model')),
+                    base_url=kwargs.get('base_url', env_config.get('base_url')),
+                    api_key=kwargs.get('api_key', env_config.get('api_key'))
                 )
 
             elif self.method_name == 'hybrid':
+                # Load configuration from environment variables if not provided
+                env_config = self._load_env_config('openai')  # Default to OpenAI
+                
+                # Check if user wants to use Gemini
+                llm_model = kwargs.get('llm_model', env_config.get('model'))
+                if llm_model and 'gemini' in llm_model.lower():
+                    env_config = self._load_env_config('gemini')
+                
                 return self.method_class(
                     nli_model=kwargs.get('nli_model', None),
                     device=self._handle_device(kwargs.get('device', None)),
                     do_word_segmentation=kwargs.get('do_word_segmentation', None),
-                    llm_model=kwargs.get('llm_model', None),
-                    api_key=kwargs.get('api_key', None)
+                    llm_model=kwargs.get('llm_model', env_config.get('model')),
+                    base_url=kwargs.get('base_url', env_config.get('base_url')),
+                    api_key=kwargs.get('api_key', env_config.get('api_key'))
                 )
 
             else:
@@ -425,25 +472,25 @@ def create_ngram_checker(n: int = 1, lowercase: bool = True) -> ViSelfCheck:
 
 
 def create_prompt_checker(
-    client_type: str = 'openai',
-    model: str = 'gpt-3.5-turbo',
+    model: Optional[str] = None,
+    base_url: Optional[str] = None,
     api_key: Optional[str] = None
 ) -> ViSelfCheck:
     """
     Create a ViSelfCheck instance with API prompting method.
     
     Args:
-        client_type: Type of API client
-        model: Model to use
-        api_key: API key for authentication
+        model: Model to use (if None, will load from environment variables)
+        base_url: Base URL for API (if None, will load from environment variables)
+        api_key: API key for authentication (if None, will load from environment variables)
         
     Returns:
         ViSelfCheck: Configured prompt checker
     """
     return ViSelfCheck(
         'prompt',
-        client_type=client_type,
         model=model,
+        base_url=base_url,
         api_key=api_key
     )
 
@@ -453,6 +500,7 @@ def create_hybrid_checker(
     device: Optional[Union[str, torch.device]] = None,
     do_word_segmentation: Optional[bool] = None,
     llm_model: Optional[str] = None,
+    base_url: Optional[str] = None,
     api_key: Optional[str] = None
 ) -> ViSelfCheck:
     """
@@ -462,8 +510,9 @@ def create_hybrid_checker(
         nli_model: NLI model to use
         device: Device to use for computation
         do_word_segmentation: Whether to perform word segmentation
-        llm_model: LLM model to use
-        api_key: API key for LLM component
+        llm_model: LLM model to use (if None, will load from environment variables)
+        base_url: Base URL for LLM API (if None, will load from environment variables)
+        api_key: API key for LLM component (if None, will load from environment variables)
         
     Returns:
         ViSelfCheck: Configured hybrid checker
@@ -474,5 +523,6 @@ def create_hybrid_checker(
         device=device,
         do_word_segmentation=do_word_segmentation,
         llm_model=llm_model,
+        base_url=base_url,
         api_key=api_key
     )

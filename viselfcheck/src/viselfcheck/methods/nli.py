@@ -8,9 +8,10 @@ from ..utils.utils import seg_list_fn, get_word_segmentation_model
 from ..config.settings import NLIConfig
 from ..base import SelfCheckBase
 
+
 class SelfCheckNLI(SelfCheckBase):
     """
-    SelfCheckGPT (NLI variant): Checking LLM's text against its own sampled texts via DeBERTa-v3 finetuned to Multi-NLI
+    SelfCheckGPT (NLI variant): Checking LLM's text against its own sampled texts
     """
     def __init__(
         self,
@@ -40,18 +41,11 @@ class SelfCheckNLI(SelfCheckBase):
     ):
         """
         This function takes sentences (to be evaluated) with sampled passages (evidence), and return sent-level scores
-        
-        Args:
-            sentences: List of sentences to be evaluated, e.g. GPT text response split by spacy
-            sampled_passages: List of stochastically generated responses (without sentence splitting)
-            passage: Optional passage text. If provided, this will be used instead of joining sentences.
-                    If None, will use " ".join(sentences) to create the passage.
-            **kwargs: Additional parameters for future extensibility
-            
-        Returns:
-            List of sentence-level scores (0-1 range, higher means more inconsistent)
-            Note: This is P(contradiction|sentence, sample) - we normalize the probability on 
-            "entailment" or "contradiction" classes only and return the probability of the "contradiction" class
+        :param sentences: list[str] -- sentences to be evaluated, e.g. GPT text response spilt by spacy
+        :param sampled_passages: list[str] -- stochastically generated responses (without sentence splitting)
+        :return sent_scores: sentence-level score which is P(condict|sentence, sample)
+        note that we normalize the probability on "entailment" or "contradiction" classes only
+        and the score is the probability of the "contradiction" class
         """
         if self.do_word_segmentation:
             sentences = seg_list_fn(sentences, self.rdrsegmenter)
@@ -60,6 +54,7 @@ class SelfCheckNLI(SelfCheckBase):
         num_sentences = len(sentences)
         num_samples = len(sampled_passages)
         scores = np.zeros((num_sentences, num_samples))
+        
         for sent_i, sentence in enumerate(sentences):
             for sample_i, sample in enumerate(sampled_passages):
                 inputs = self.tokenizer.batch_encode_plus(
@@ -69,10 +64,14 @@ class SelfCheckNLI(SelfCheckBase):
                     return_token_type_ids=True, return_attention_mask=True,
                     max_length=256
                 )
+
                 inputs = inputs.to(self.device)
                 logits = self.model(**inputs).logits[:, [0, -1]] # neutral is already removed
                 probs = torch.softmax(logits, dim=-1)
+
                 prob_ = probs[0][-1].item() # prob(contradiction)
                 scores[sent_i, sample_i] = prob_
+
         scores_per_sentence = scores.mean(axis=-1)
+
         return scores_per_sentence.tolist()
